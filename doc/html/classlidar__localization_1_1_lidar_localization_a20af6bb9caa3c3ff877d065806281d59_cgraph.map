@@ -1,0 +1,4 @@
+<map id="lidar_localization::LidarLocalization::findBeacon" name="lidar_localization::LidarLocalization::findBeacon">
+<area shape="rect" id="node1" title="To find the nearest obstacles to beacon tf pose." alt="" coords="5,5,132,61"/>
+<area shape="rect" id="node2" href="$namespacelidar__localization.html#a26f0c205d69ef507b288eec5784e6a89" title=" " alt="" coords="180,13,299,54"/>
+</map>

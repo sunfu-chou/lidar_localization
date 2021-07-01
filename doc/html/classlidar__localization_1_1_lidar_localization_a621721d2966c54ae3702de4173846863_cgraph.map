@@ -1,0 +1,8 @@
+<map id="lidar_localization::LidarLocalization::getRobotPose" name="lidar_localization::LidarLocalization::getRobotPose">
+<area shape="rect" id="node1" title="To get robot pose by beacon." alt="" coords="5,73,132,129"/>
+<area shape="rect" id="node2" href="$namespacelidar__localization.html#a26f0c205d69ef507b288eec5784e6a89" title=" " alt="" coords="417,55,536,96"/>
+<area shape="rect" id="node3" href="$classlidar__localization_1_1_lidar_localization.html#a6816e3a63bf63d3594ebc6abc2efd9e0" title="Tf broadcasters that send three fixed beacons pose to map" alt="" coords="205,33,331,89"/>
+<area shape="rect" id="node4" href="$classlidar__localization_1_1_lidar_localization.html#ab77d763618bd98b80de06ce0ccc12f1a" title="Topic lidar_pose publisher function." alt="" coords="205,113,331,169"/>
+<area shape="rect" id="node5" href="$classlidar__localization_1_1_lidar_localization.html#ac9007f2fa0eb372c5458927caa1d7c92" title="To check the geometry of three obstacles is satisfy tf geometry." alt="" coords="180,193,356,249"/>
+<area shape="rect" id="node6" href="$namespacelidar__localization.html#abaade09cb3e3dd271f5b73b9a59b9096" title=" " alt="" coords="404,200,549,242"/>
+</map>

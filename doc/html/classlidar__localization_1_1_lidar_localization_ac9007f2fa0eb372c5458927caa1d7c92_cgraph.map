@@ -1,0 +1,5 @@
+<map id="lidar_localization::LidarLocalization::validateBeaconGeometry" name="lidar_localization::LidarLocalization::validateBeaconGeometry">
+<area shape="rect" id="node1" title="To check the geometry of three obstacles is satisfy tf geometry." alt="" coords="5,31,181,87"/>
+<area shape="rect" id="node2" href="$namespacelidar__localization.html#abaade09cb3e3dd271f5b73b9a59b9096" title=" " alt="" coords="229,5,375,47"/>
+<area shape="rect" id="node3" href="$namespacelidar__localization.html#a26f0c205d69ef507b288eec5784e6a89" title=" " alt="" coords="243,71,361,112"/>
+</map>

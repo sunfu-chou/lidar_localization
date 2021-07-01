@@ -1,0 +1,7 @@
+<map id="lidar_localization::LidarLocalization::getBeacontoRobot" name="lidar_localization::LidarLocalization::getBeacontoRobot">
+<area shape="rect" id="node1" title="To loopup tf of beacons to robot" alt="" coords="708,39,847,95"/>
+<area shape="rect" id="node2" href="$classlidar__localization_1_1_lidar_localization.html#aec47ec4f16974f6ab51c6f57de0003c1" title="Topic obstacles callback function." alt="" coords="529,39,660,95"/>
+<area shape="rect" id="node3" href="$classlidar__localization_1_1_lidar_localization.html#a2a4c81f163cd8dea0f4643655d53df5c" title="A service call that get params and set to this node." alt="" coords="355,39,481,95"/>
+<area shape="rect" id="node4" href="$classlidar__localization_1_1_lidar_localization.html#ac6655cf48dace6fa021c8ab6c1bbfa34" title="To get params and set to this node in the constructor." alt="" coords="180,5,307,61"/>
+<area shape="rect" id="node5" href="$classlidar__localization_1_1_lidar_localization.html#ad64ba456613681fa1c442cc3bf1c83c1" title="Construct for the class Lidar Localization" alt="" coords="5,39,132,95"/>
+</map>
