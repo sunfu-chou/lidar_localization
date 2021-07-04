@@ -1,5 +1,6 @@
 <launch>
-    <node name="map_to_odom" pkg="tf2_ros" type="static_transform_publisher" args="0.0 0.0 0 0 0 0 map odom"/>
+
+    <node name="map_to_odom" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 1 map odom"/>
     <node name="base_to_laser" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 -0.044 0.999 base_footprint laser_frame"/>
 
     <node name="nodelet_manager" pkg="nodelet" type="nodelet" args="manager" output="screen">
@@ -22,10 +23,9 @@
         <param name="max_y_range" value="10.0"/>
 
         <param name="fixed_frame_id" value="map"/>
-        <param name="target_frame_id" value="robot"/>
-        <param name="front_scan_topic" value="scan"/>
+        <param name="target_frame_id" value="odom"/>
 
-        <remap from="scan" to="scan_merged"/>
+        <remap from="scan" to="scan_map"/>
     </node>
 
     <node name="obstacle_extractor" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleExtractor nodelet_manager">
@@ -49,10 +49,9 @@
         <param name="radius_enlargement" value="0.05"/>
 
         <param name="frame_id" value="laser_frame"/>
-        <param name="scan_topic" value="scan_merged"/>
     </node>
 
-    <node name="obstacle_tracker" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleTracker nodelet_manager">
+    <!-- <node name="obstacle_tracker" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleTracker nodelet_manager">
         <param name="active" value="true"/>
 
         <param name="loop_rate" value="12.0"/>
@@ -66,7 +65,7 @@
         <param name="frame_id" value="laser_frame"/>
 
         <remap from="tracked_obstacles" to="obstacles"/>
-    </node>
+    </node> -->
 
     <node name="lidar_localization" pkg="nodelet" type="nodelet" args="load lidar_localization/LidarLocalization nodelet_manager" output="log">
         <param name="active" value="true"/>
@@ -75,14 +74,14 @@
         <param name="cov_y" value="0.9"/>
         <param name="cov_yaw" value="0.9"/>
 
-        <param name="beacon_1_x" value="1.0"/>
-        <param name="beacon_1_y" value="-0.05"/>
-
-        <param name="beacon_2_x" value="0.05"/>
-        <param name="beacon_2_y" value="3.05"/>
-
-        <param name="beacon_3_x" value="1.95"/>
-        <param name="beacon_3_y" value="3.05"/>
+        <param name="beacon_1_x" value="1"/>
+        <param name="beacon_1_y" value="-0.08"/>
+  
+        <param name="beacon_2_x" value="0.08"/>
+        <param name="beacon_2_y" value="3.18"/>
+  
+        <param name="beacon_3_x" value="1.92"/>
+        <param name="beacon_3_y" value="3.18"/>
         <param name="theta" value="4"/>
 
         <param name="obstacle_topic" value="raw_obstacles"/>

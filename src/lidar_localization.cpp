@@ -32,7 +32,6 @@ LidarLocalization::LidarLocalization(ros::NodeHandle& nh, ros::NodeHandle& nh_lo
   : nh_(nh), nh_local_(nh_local), tf2_listener_(tf2_buffer_)
 {
   params_srv_ = nh_local_.advertiseService("params", &LidarLocalization::updateParams, this);
-
   initialize();
 }
 
@@ -326,9 +325,10 @@ bool LidarLocalization::validateBeaconGeometry()
   }
   else
   {
-    ROS_WARN_STREAM("dist12: " << beacon_distance[0][1]);
-    ROS_WARN_STREAM("dist13: " << beacon_distance[0][2]);
-    ROS_WARN_STREAM("dist23: " << beacon_distance[1][2]);
+    ROS_INFO_STREAM("reacon distance: " << real_beacon_distance[0][1] << ", " << real_beacon_distance[0][2] << ", "
+                                        << real_beacon_distance[1][2]);
+    ROS_WARN_STREAM("beacon distance: " << beacon_distance[0][1] << ", " << beacon_distance[0][2] << ", "
+                                        << beacon_distance[1][2]);
     return false;
   }
 }
@@ -346,10 +346,6 @@ void LidarLocalization::getRobotPose()
   {
     dist_beacon_robot.push_back(length(beacon_found_[i]));
   }
-
-  ROS_INFO_STREAM("1: " << dist_beacon_robot[0]);
-  ROS_INFO_STREAM("2: " << dist_beacon_robot[1]);
-  ROS_INFO_STREAM("3: " << dist_beacon_robot[2]);
 
   // least squares method to solve Ax=b
   // i.e to solve (A^T)Ax=(A^T)b

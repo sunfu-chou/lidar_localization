@@ -35,10 +35,13 @@ include_directories(
 #
 # Build libs
 #
+add_library(lidar_localization src/lidar_localization.cpp)
+target_link_libraries(lidar_localization ${catkin_LIBRARIES} ${ARMADILLO_LIBRARIES})
+add_dependencies(lidar_localization ${catkin_EXPORTED_TARGETS})
 
-add_library(${PROJECT_NAME} src/${PROJECT_NAME}.cpp)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
-add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
+add_library(area_obstacles_extractor src/area_obstacles_extractor.cpp)
+target_link_libraries(area_obstacles_extractor ${catkin_LIBRARIES})
+add_dependencies(area_obstacles_extractor ${catkin_EXPORTED_TARGETS})
 
 #
 # Build nodes
@@ -46,9 +49,11 @@ add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 add_executable(rx_to_odom src/rx_to_odom.cpp)
 target_link_libraries(rx_to_odom ${PROJECT_NAME})
 
-add_executable(${PROJECT_NAME}_node src/nodes/${PROJECT_NAME}_node.cpp)
-target_link_libraries(${PROJECT_NAME}_node ${PROJECT_NAME})
+add_executable(lidar_localization_node src/nodes/lidar_localization_node.cpp)
+target_link_libraries(lidar_localization_node lidar_localization)
 
+add_executable(area_obstacles_extractor_node src/nodes/area_obstacles_extractor_node.cpp)
+target_link_libraries(area_obstacles_extractor_node area_obstacles_extractor)
 
 #
 # Build nodelets
