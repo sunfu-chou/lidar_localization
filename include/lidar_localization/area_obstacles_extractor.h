@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include <ros/ros.h>
 
 #include <std_srvs/Empty.h>
@@ -32,6 +34,8 @@
 #include <costmap_converter/ObstacleMsg.h>
 #include <geometry_msgs/Polygon.h>
 #include <geometry_msgs/Point32.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 namespace lidar_localization
 {
@@ -84,6 +88,7 @@ private:
    *
    */
   void publishObstacles();
+  void publishMarkers();
 
   /* ros node */
   ros::NodeHandle nh_;
@@ -93,11 +98,10 @@ private:
   /* ros inter-node */
   ros::Subscriber obstacles_sub_;
   ros::Publisher obstacles_array_pub_;
-  ros::Publisher obstacles_pub_;
+  ros::Publisher marker_pub_;
 
   costmap_converter::ObstacleArrayMsg output_obstacles_array_;
-  costmap_converter::ObstacleMsg output_obstacles_;
-
+  visualization_msgs::MarkerArray output_marker_array_;
   /* private variables */
 
   /* ros param */

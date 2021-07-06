@@ -3,6 +3,8 @@
     <node name="map_to_odom" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 0 1 map odom"/>
     <node name="base_to_laser" pkg="tf2_ros" type="static_transform_publisher" args="0 0 0 0 0 -0.044 0.999 base_footprint laser_frame"/>
 
+    <node name="scan_rosbag" pkg="lidar_localization" type="scan_rosbag"/>
+
     <node name="beacon_extractor" pkg="obstacle_detector" type="obstacle_extractor_node">
         <param name="active" value="true"/>
         <param name="use_scan" value="true"/>
@@ -24,6 +26,7 @@
         <param name="radius_enlargement" value="0.05"/>
 
         <param name="frame_id" value="base_footprint"/>
+        <remap from="scan" to="scan_bag"/>
         <remap from="raw_obstacles" to="obstacles_to_base"/>
     </node>
 
@@ -48,6 +51,7 @@
         <param name="radius_enlargement" value="0.05"/>
 
         <param name="frame_id" value="map"/>
+        <remap from="scan" to="scan_bag"/>
         <remap from="raw_obstacles" to="obstacles_to_map"/>
     </node>
 

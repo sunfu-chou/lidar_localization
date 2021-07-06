@@ -49,6 +49,9 @@ add_dependencies(area_obstacles_extractor ${catkin_EXPORTED_TARGETS})
 add_executable(rx_to_odom src/rx_to_odom.cpp)
 target_link_libraries(rx_to_odom ${PROJECT_NAME})
 
+add_executable(scan_rosbag src/scan_rosbag.cpp)
+target_link_libraries(scan_rosbag ${PROJECT_NAME})
+
 add_executable(lidar_localization_node src/nodes/lidar_localization_node.cpp)
 target_link_libraries(lidar_localization_node lidar_localization)
 
