@@ -88,6 +88,11 @@ private:
    *
    */
   void publishObstacles();
+
+  /**
+   * @brief Topic `obstaclefield_marker` publisher function
+   *
+   */
   void publishMarkers();
 
   /* ros node */
@@ -96,9 +101,9 @@ private:
   ros::ServiceServer params_srv_;
 
   /* ros inter-node */
-  ros::Subscriber obstacles_sub_;
-  ros::Publisher obstacles_array_pub_;
-  ros::Publisher marker_pub_;
+  ros::Subscriber sub_obstacles_;
+  ros::Publisher pub_obstacles_array_;
+  ros::Publisher pub_marker_;
 
   costmap_converter::ObstacleArrayMsg output_obstacles_array_;
   visualization_msgs::MarkerArray output_marker_array_;

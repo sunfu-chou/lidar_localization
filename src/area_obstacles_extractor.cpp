@@ -51,25 +51,25 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
 
   get_param_ok = nh_local_.param<bool>("active", p_active_, true);
 
-  get_param_ok = nh_local_.param<double>("p_x_min_range_", p_x_min_range_, 0.0);
-  get_param_ok = nh_local_.param<double>("p_x_max_range_", p_x_max_range_, 2.0);
-  get_param_ok = nh_local_.param<double>("p_y_min_range_", p_y_min_range_, 0.0);
-  get_param_ok = nh_local_.param<double>("p_y_max_range_", p_y_max_range_, 3.0);
+  get_param_ok = nh_local_.param<double>("x_min_range_", p_x_min_range_, 0.0);
+  get_param_ok = nh_local_.param<double>("x_max_range_", p_x_max_range_, 2.0);
+  get_param_ok = nh_local_.param<double>("y_min_range_", p_y_min_range_, 0.0);
+  get_param_ok = nh_local_.param<double>("y_max_range_", p_y_max_range_, 3.0);
   get_param_ok = nh_local_.param<double>("obstacle_radius", p_radius_, 0.1);
 
   if (p_active_ != prev_active)
   {
     if (p_active_)
     {
-      obstacles_sub_ = nh_.subscribe("obstacles_to_map", 10, &AreaObstaclesExtractor::obstacleCallback, this);
-      obstacles_array_pub_ = nh_.advertise<costmap_converter::ObstacleArrayMsg>("obstacle_array", 10);
-      marker_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization_marker", 10);
+      sub_obstacles_ = nh_.subscribe("obstacles_to_map", 10, &AreaObstaclesExtractor::obstacleCallback, this);
+      pub_obstacles_array_ = nh_.advertise<costmap_converter::ObstacleArrayMsg>("obstacle_array", 10);
+      pub_marker_ = nh_.advertise<visualization_msgs::MarkerArray>("obstacle_marker", 10);
     }
     else
     {
-      obstacles_sub_.shutdown();
-      obstacles_array_pub_.shutdown();
-      marker_pub_.shutdown();
+      sub_obstacles_.shutdown();
+      pub_obstacles_array_.shutdown();
+      pub_marker_.shutdown();
     }
   }
 
@@ -105,29 +105,37 @@ void AreaObstaclesExtractor::obstacleCallback(const obstacle_detector::Obstacles
         obstacle_msg.header.stamp = now;
 
         geometry_msgs::Point32 point;
-        point.x = circle.center.x;
-        point.y = circle.center.y;
+        point.x = circle.center.x - p_radius_ / 2.0;
+        point.y = circle.center.y - p_radius_ / 2.0;
         obstacle_msg.polygon.points.push_back(point);
-
+        point.x = circle.center.x - p_radius_ / 2.0;
+        point.y = circle.center.y + p_radius_ / 2.0;
+        obstacle_msg.polygon.points.push_back(point);
+        point.x = circle.center.x + p_radius_ / 2.0;
+        point.y = circle.center.y - p_radius_ / 2.0;
+        obstacle_msg.polygon.points.push_back(point);
+        point.x = circle.center.x + p_radius_ / 2.0;
+        point.y = circle.center.y + p_radius_ / 2.0;
+        obstacle_msg.polygon.points.push_back(point);
         obstacle_msg.radius = p_radius_;
-
         output_obstacles_array_.obstacles.push_back(obstacle_msg);
 
         visualization_msgs::Marker marker;
         marker.header.frame_id = ptr->header.frame_id;
         marker.header.stamp = now;
-        marker.type = visualization_msgs::Marker::SPHERE;
+        marker.type = visualization_msgs::Marker::CUBE;
         marker.pose.position.x = circle.center.x;
         marker.pose.position.y = circle.center.y;
-        marker.pose.position.z = 0.1;
+        marker.pose.position.z = p_radius_ / 2.0;
         marker.pose.orientation.w = 1.0;
         marker.color.r = 0.5;
         marker.color.g = 1.0;
         marker.color.b = 0.5;
         marker.color.a = 1.0;
-        marker.scale.x = 0.2;
-        marker.scale.y = 0.2;
-        marker.scale.z = 0.2;
+
+        marker.scale.x = p_radius_;
+        marker.scale.y = p_radius_;
+        marker.scale.z = p_radius_;
 
         output_marker_array_.markers.push_back(marker);
       }
@@ -138,10 +146,10 @@ void AreaObstaclesExtractor::obstacleCallback(const obstacle_detector::Obstacles
 
 void AreaObstaclesExtractor::publishObstacles()
 {
-  obstacles_array_pub_.publish(output_obstacles_array_);
+  pub_obstacles_array_.publish(output_obstacles_array_);
 }
 
 void AreaObstaclesExtractor::publishMarkers()
 {
-  marker_pub_.publish(output_marker_array_);
+  pub_marker_.publish(output_marker_array_);
 }

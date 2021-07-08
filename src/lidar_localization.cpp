@@ -70,7 +70,7 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
   get_param_ok = nh_local_.param<double>("beacon_2_y", p_beacon_2_y_, 3.05);
   get_param_ok = nh_local_.param<double>("beacon_3_x", p_beacon_3_x_, 1.95);
   get_param_ok = nh_local_.param<double>("beacon_3_y", p_beacon_3_y_, 3.05);
-  get_param_ok = nh_local_.param<double>("theta", p_theta, 0);
+  get_param_ok = nh_local_.param<double>("theta", p_theta_, 0);
 
   get_param_ok = nh_local_.param<string>("obstacle_topic", p_obstacle_topic_, "obstacles");
   get_param_ok = nh_local_.param<string>("beacon_parent_frame_id", p_beacon_parent_frame_id_, "map");
@@ -82,15 +82,15 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
   {
     if (p_active_)
     {
-      obstacles_sub_ = nh_.subscribe(p_obstacle_topic_, 10, &LidarLocalization::obstacleCallback, this);
-      location_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("lidar_bonbonbon", 10);
-      beacon_pub_ = nh_.advertise<geometry_msgs::PoseArray>("beacons", 10);
+      sub_obstacles_ = nh_.subscribe(p_obstacle_topic_, 10, &LidarLocalization::obstacleCallback, this);
+      pub_location_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("lidar_bonbonbon", 10);
+      pub_beacon_ = nh_.advertise<geometry_msgs::PoseArray>("beacons", 10);
     }
     else
     {
-      obstacles_sub_.shutdown();
-      location_pub_.shutdown();
-      beacon_pub_.shutdown();
+      sub_obstacles_.shutdown();
+      pub_location_.shutdown();
+      pub_beacon_.shutdown();
     }
   }
 
@@ -386,7 +386,7 @@ void LidarLocalization::getRobotPose()
       robot_cos += cos(theta);
     }
 
-    robot_yaw = atan2(robot_sin, robot_cos) + p_theta / 180.0 * 3.1415926;
+    robot_yaw = atan2(robot_sin, robot_cos) + p_theta_ / 180.0 * 3.1415926;
     tf2::Quaternion q;
     q.setRPY(0., 0., robot_yaw);
     output_robot_pose_.pose.pose.orientation = tf2::toMsg(q);
@@ -418,7 +418,7 @@ void LidarLocalization::publishLocation()
                                           0,        0,        0, 0,    0,   0,
                                           0,        0,        0, 0,    0,   p_cov_yaw_};
   // clang-format on
-  location_pub_.publish(output_robot_pose_);
+  pub_location_.publish(output_robot_pose_);
 }
 
 void LidarLocalization::publishBeacons()
@@ -436,5 +436,5 @@ void LidarLocalization::publishBeacons()
     output_beacons_.poses.push_back(pose);
   }
 
-  beacon_pub_.publish(output_beacons_);
+  pub_beacon_.publish(output_beacons_);
 }
