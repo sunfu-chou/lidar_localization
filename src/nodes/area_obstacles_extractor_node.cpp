@@ -28,7 +28,7 @@ using namespace lidar_localization;
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "field_obstacles_extractor");
+  ros::init(argc, argv, "area_obstacles_extractor");
   ros::NodeHandle nh("");
   ros::NodeHandle nh_local("~");
 
