@@ -24,8 +24,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include <ros/ros.h>
 
 #include <std_srvs/Empty.h>

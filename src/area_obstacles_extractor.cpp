@@ -76,12 +76,12 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
   if (get_param_ok)
   {
     ROS_INFO_STREAM("[Area Obstacles Extractor]: "
-                    << "param set ok");
+                    << "set param ok");
   }
   else
   {
     ROS_WARN_STREAM("[Area Obstacles Extractor]: "
-                    << "param set fail");
+                    << "set param failed");
   }
   return true;
 }
@@ -105,19 +105,20 @@ void AreaObstaclesExtractor::obstacleCallback(const obstacle_detector::Obstacles
         obstacle_msg.header.stamp = now;
 
         geometry_msgs::Point32 point;
-        point.x = circle.center.x - p_radius_ / 2.0;
-        point.y = circle.center.y - p_radius_ / 2.0;
+        point.x = circle.center.x - p_radius_;
+        point.y = circle.center.y - p_radius_;
         obstacle_msg.polygon.points.push_back(point);
-        point.x = circle.center.x - p_radius_ / 2.0;
-        point.y = circle.center.y + p_radius_ / 2.0;
+        point.x = circle.center.x - p_radius_;
+        point.y = circle.center.y + p_radius_;
         obstacle_msg.polygon.points.push_back(point);
-        point.x = circle.center.x + p_radius_ / 2.0;
-        point.y = circle.center.y - p_radius_ / 2.0;
+        point.x = circle.center.x + p_radius_;
+        point.y = circle.center.y + p_radius_;
         obstacle_msg.polygon.points.push_back(point);
-        point.x = circle.center.x + p_radius_ / 2.0;
-        point.y = circle.center.y + p_radius_ / 2.0;
+        point.x = circle.center.x + p_radius_;
+        point.y = circle.center.y - p_radius_;
         obstacle_msg.polygon.points.push_back(point);
         obstacle_msg.radius = p_radius_;
+        obstacle_msg.orientation.w = 1.0;
         output_obstacles_array_.obstacles.push_back(obstacle_msg);
 
         visualization_msgs::Marker marker;
@@ -126,16 +127,16 @@ void AreaObstaclesExtractor::obstacleCallback(const obstacle_detector::Obstacles
         marker.type = visualization_msgs::Marker::CUBE;
         marker.pose.position.x = circle.center.x;
         marker.pose.position.y = circle.center.y;
-        marker.pose.position.z = p_radius_ / 2.0;
+        marker.pose.position.z = 0.01;
         marker.pose.orientation.w = 1.0;
         marker.color.r = 0.5;
         marker.color.g = 1.0;
         marker.color.b = 0.5;
         marker.color.a = 1.0;
 
-        marker.scale.x = p_radius_;
-        marker.scale.y = p_radius_;
-        marker.scale.z = p_radius_;
+        marker.scale.x = p_radius_ * 2.0;
+        marker.scale.y = p_radius_ * 2.0;
+        marker.scale.z = 0.02;
 
         output_marker_array_.markers.push_back(marker);
       }

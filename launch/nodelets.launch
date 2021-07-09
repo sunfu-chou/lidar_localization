@@ -102,6 +102,4 @@
         <param name="delay" value="1"/>
     </node>
 
-    <include file="$(find robot_localization)/launch/ekf_template.launch"/>
-
 </launch>

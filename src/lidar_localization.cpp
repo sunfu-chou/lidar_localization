@@ -97,12 +97,12 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
   if (get_param_ok)
   {
     ROS_INFO_STREAM("[Lidar Localization]: "
-                    << "param set ok");
+                    << "set param ok");
   }
   else
   {
     ROS_WARN_STREAM("[Lidar Localization]: "
-                    << "param set fail");
+                    << "set param failed");
   }
 
   setBeacontoMap();
@@ -234,7 +234,7 @@ void LidarLocalization::getBeacontoMap()
   else
   {
     ROS_WARN_STREAM("[Lidar Localization]: "
-                    << "get beacon to map tf fail");
+                    << "get beacon to map tf failed");
   }
 }
 
@@ -273,7 +273,7 @@ void LidarLocalization::getBeacontoRobot()
   if (!tf_ok)
   {
     ROS_WARN_STREAM("[Lidar Localization]: "
-                    << "get beacon to robot tf fail");
+                    << "get beacon to robot tf failed");
   }
 }
 
