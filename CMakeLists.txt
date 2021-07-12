@@ -43,6 +43,10 @@ add_library(area_obstacles_extractor src/area_obstacles_extractor.cpp)
 target_link_libraries(area_obstacles_extractor ${catkin_LIBRARIES})
 add_dependencies(area_obstacles_extractor ${catkin_EXPORTED_TARGETS})
 
+add_library(beacon_scan_tracker src/beacon_scan_tracker.cpp)
+target_link_libraries(beacon_scan_tracker ${catkin_LIBRARIES})
+add_dependencies(beacon_scan_tracker ${catkin_EXPORTED_TARGETS})
+
 #
 # Build nodes
 #
@@ -58,26 +62,13 @@ target_link_libraries(lidar_localization_node lidar_localization)
 add_executable(area_obstacles_extractor_node src/nodes/area_obstacles_extractor_node.cpp)
 target_link_libraries(area_obstacles_extractor_node area_obstacles_extractor)
 
+
+add_executable(beacon_scan_tracker_node src/nodes/beacon_scan_tracker_node.cpp)
+target_link_libraries(beacon_scan_tracker_node beacon_scan_tracker)
+
 #
 # Build nodelets
 #
 add_library(${PROJECT_NAME}_nodelets src/nodelets/${PROJECT_NAME}_nodelet.cpp)
 target_link_libraries(${PROJECT_NAME}_nodelets ${PROJECT_NAME})
 
-
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_nodelets
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
-)
-
-install(TARGETS ${PROJECT_NAME}_node
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-)
-
-install(DIRECTORY launch/
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
