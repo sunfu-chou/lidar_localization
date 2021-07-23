@@ -62,12 +62,14 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
     if (p_active_)
     {
       sub_obstacles_ = nh_.subscribe("obstacles_to_map", 10, &AreaObstaclesExtractor::obstacleCallback, this);
+      sub_obstacles_odom_ = nh_.subscribe("obstacle_odom", 12, &AreaObstaclesExtractor::odomCallback, this);
       pub_obstacles_array_ = nh_.advertise<costmap_converter::ObstacleArrayMsg>("obstacle_array", 10);
       pub_marker_ = nh_.advertise<visualization_msgs::MarkerArray>("obstacle_marker", 10);
     }
     else
     {
       sub_obstacles_.shutdown();
+      sub_obstacles_odom_.shutdown();
       pub_obstacles_array_.shutdown();
       pub_marker_.shutdown();
     }
@@ -86,6 +88,10 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
   return true;
 }
 
+void AreaObstaclesExtractor::odomCallback(const nav_msgs::Odometry::ConstPtr& ptr){
+  input_odom_.twist.twist.linear.x = ptr->twist.twist.linear.x;
+  input_odom_.twist.twist.angular.z = ptr->twist.twist.angular.z;
+}
 void AreaObstaclesExtractor::obstacleCallback(const obstacle_detector::Obstacles::ConstPtr& ptr)
 {
   ros::Time now = ros::Time::now();
@@ -119,12 +125,15 @@ void AreaObstaclesExtractor::obstacleCallback(const obstacle_detector::Obstacles
         obstacle_msg.polygon.points.push_back(point);
         obstacle_msg.radius = p_radius_;
         obstacle_msg.orientation.w = 1.0;
+        obstacle_msg.velocities.twist.linear.x = input_odom_.twist.twist.linear.x;
+        obstacle_msg.velocities.twist.angular.z = input_odom_.twist.twist.angular.z;
         output_obstacles_array_.obstacles.push_back(obstacle_msg);
 
         visualization_msgs::Marker marker;
         marker.header.frame_id = ptr->header.frame_id;
         marker.header.stamp = now;
         marker.type = visualization_msgs::Marker::CUBE;
+        marker.lifetime = 2;
         marker.pose.position.x = circle.center.x;
         marker.pose.position.y = circle.center.y;
         marker.pose.position.z = 0.01;
