@@ -25,6 +25,7 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <vector>
 
 #include <std_srvs/Empty.h>
 #include <obstacle_detector/Obstacles.h>
@@ -34,6 +35,7 @@
 #include <geometry_msgs/Point32.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <nav_msgs/Odometry.h>
 
 namespace lidar_localization
 {
@@ -82,6 +84,13 @@ private:
   void obstacleCallback(const obstacle_detector::Obstacles::ConstPtr& ptr);
 
   /**
+   * @brief Topic `odom` callback function
+   * 
+   * @param ptr The odom data
+   *    */
+  void odomCallback(const nav_msgs::Odometry::ConstPtr& ptr);
+
+  /**
    * @brief Topic `obstacles_to_map` publisher function
    *
    */
@@ -100,11 +109,13 @@ private:
 
   /* ros inter-node */
   ros::Subscriber sub_obstacles_;
+  ros::Subscriber sub_obstacles_odom_;
   ros::Publisher pub_obstacles_array_;
   ros::Publisher pub_marker_;
 
   costmap_converter::ObstacleArrayMsg output_obstacles_array_;
   visualization_msgs::MarkerArray output_marker_array_;
+  nav_msgs::Odometry input_odom_;
   /* private variables */
 
   /* ros param */
