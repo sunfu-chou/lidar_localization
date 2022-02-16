@@ -133,7 +133,7 @@ void AreaObstaclesExtractor::obstacleCallback(const obstacle_detector::Obstacles
         marker.header.frame_id = ptr->header.frame_id;
         marker.header.stamp = now;
         marker.type = visualization_msgs::Marker::CUBE;
-        marker.lifetime = 2;
+        marker.lifetime = ros::Duration(2.0);
         marker.pose.position.x = circle.center.x;
         marker.pose.position.y = circle.center.y;
         marker.pose.position.z = 0.01;
