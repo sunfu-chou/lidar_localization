@@ -62,14 +62,12 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
     if (p_active_)
     {
       sub_obstacles_ = nh_.subscribe("obstacles_to_map", 10, &AreaObstaclesExtractor::obstacleCallback, this);
-      sub_obstacles_odom_ = nh_.subscribe("obstacle_odom", 12, &AreaObstaclesExtractor::odomCallback, this);
       pub_obstacles_array_ = nh_.advertise<costmap_converter::ObstacleArrayMsg>("obstacle_array", 10);
       pub_marker_ = nh_.advertise<visualization_msgs::MarkerArray>("obstacle_marker", 10);
     }
     else
     {
       sub_obstacles_.shutdown();
-      sub_obstacles_odom_.shutdown();
       pub_obstacles_array_.shutdown();
       pub_marker_.shutdown();
     }
