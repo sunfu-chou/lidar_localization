@@ -28,6 +28,7 @@
 #include <armadillo>
 #include <cmath>
 #include <vector>
+#include <utility>
 
 #include <ros/ros.h>
 
@@ -172,6 +173,9 @@ private:
   geometry_msgs::Point beacon_to_robot_[3];
   geometry_msgs::Point beacon_found_[3];
 
+  std::vector<std::vector<double>> beacon_dis_real_;
+  std::vector<std::pair<size_t, size_t>> segments;
+  std::vector<double> is_possible_beacon;
   /* ros param */
   bool p_active_;
 

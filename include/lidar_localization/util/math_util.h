@@ -4,6 +4,7 @@
 
 namespace lidar_localization
 {
+
 template <class T, class S>
 double length(T& pose1, S& pose2)
 {
