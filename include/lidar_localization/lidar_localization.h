@@ -28,16 +28,17 @@
 #include <armadillo>
 #include <cmath>
 #include <vector>
-#include <queue>
-#include <utility>
+#include <string>
 
 #include <ros/ros.h>
 
 #include <std_srvs/Empty.h>
 
 #include <geometry_msgs/Point.h>
-#include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -106,55 +107,6 @@ private:
    */
   void publishLandmarks();
 
-  /**
-   * @brief A blocking function to check if Tf is ok
-   *
-   * @return true if all tf is ok
-   * @return false never, instead, stuck in while loop
-   */
-  bool checkTFOK();
-
-  /**
-   * @brief Send tf of the beacons to **map**
-   *
-   */
-  void setBeacontoMap();
-
-  /**
-   * @brief To loopup tf of beacons to **map**
-   *
-   */
-  void getBeacontoMap();
-
-  /**
-   * @brief To loopup tf of beacons to **robot**
-   *
-   */
-  void getBeacontoRobot();
-
-  /**
-   * @brief To find the nearest obstacles to beacon tf pose
-   *
-   */
-  void findBeacon();
-
-  /**
-   * @brief To check the geometry of three obstacles is satisfy tf geometry
-   *
-   * @return true if geometry is valid
-   * @return false if at least one geometry is wrong
-   */
-  bool validateBeaconGeometry();
-
-  /**
-   * @brief To get robot pose by beacon
-   *
-   */
-  void getRobotPose(std::vector<size_t>);
-
-  bool Match(std::vector<size_t> poly_list);
-
-  bool DFS(std::vector<size_t> poly_list);
 
   /* ros node */
   ros::NodeHandle nh_;
@@ -163,45 +115,25 @@ private:
 
   /* ros inter-node */
   ros::Subscriber sub_obstacles_;
-  ros::Publisher pub_location_;
-  ros::Publisher pub_beacon_;
+  ros::Publisher pub_robot_pose_;
+  ros::Publisher pub_landmarks_;
   tf2_ros::Buffer tf2_buffer_;
   tf2_ros::TransformListener tf2_listener_;
-  tf2_ros::StaticTransformBroadcaster static_broadcaster_;
 
-  std::vector<obstacle_detector::CircleObstacle> input_circles_;
+  std::vector<geometry_msgs::Point> input_obstacles_;
   geometry_msgs::PoseWithCovarianceStamped output_robot_pose_;
-  geometry_msgs::PoseArray output_beacons_;
+  visualization_msgs::MarkerArray output_beacons_;
 
   /* private variables */
-  geometry_msgs::Point beacon_to_map_[3];
-  geometry_msgs::Point beacon_to_robot_[3];
-  geometry_msgs::Point beacon_found_[3];
 
-  std::vector<std::vector<double>> beacon_dis_real_;
-  std::vector<std::pair<size_t, size_t>> segments;
-  std::vector<std::vector<size_t>> poly_lists;
-
-  geometry_msgs::PoseArray robot_pose_possible;
   
   /* ros param */
   bool p_active_;
 
-  double p_cov_x_;
-  double p_cov_y_;
-  double p_cov_yaw_;
-  double p_beacon_1_x_;
-  double p_beacon_1_y_;
-  double p_beacon_2_x_;
-  double p_beacon_2_y_;
-  double p_beacon_3_x_;
-  double p_beacon_3_y_;
-  double p_theta_;
+  std::vector<double> p_covariance_;
+  std::vector<double> p_landmarks_;
 
-  std::string p_obstacle_topic_;
-  std::string p_beacon_parent_frame_id_;
-  std::string p_beacon_frame_id_prefix_;
-  std::string p_robot_parent_frame_id_;
-  std::string p_robot_frame_id_;
+  std::string p_map_frame_id_;
+  std::string p_base_frame_id_;
 };
 }  // namespace lidar_localization
