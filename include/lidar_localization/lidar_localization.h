@@ -26,9 +26,13 @@
 
 #define _USE_MATH_DEFINES
 #include <armadillo>
+#include <algorithm>
 #include <cmath>
 #include <vector>
 #include <string>
+#include <queue>
+#include <array>
+#include <numeric>
 
 #include <ros/ros.h>
 
@@ -38,14 +42,15 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
-
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <XmlRpcException.h>
+
+#include <lidar_localization/polygon.h>
 #include <lidar_localization/util/math_util.h>
 #include <obstacle_detector/Obstacles.h>
 
@@ -68,16 +73,6 @@ public:
   ~LidarLocalization();
 
 private:
-  /**
-   * @brief To get params and set to this node in the constructor
-   *
-   */
-  void initialize()
-  {
-    std_srvs::Empty empt;
-    updateParams(empt.request, empt.response);
-  }
-
   /**
    * @brief A service call that get params and set to this node
    *
@@ -107,6 +102,7 @@ private:
    */
   void publishLandmarks();
 
+  void findLandmarks();
 
   /* ros node */
   ros::NodeHandle nh_;
@@ -125,13 +121,15 @@ private:
   visualization_msgs::MarkerArray output_beacons_;
 
   /* private variables */
+  std::vector<std::vector<double>> landmarks_length;
+  std::vector<Polygon> polygons;
 
-  
   /* ros param */
   bool p_active_;
 
   std::vector<double> p_covariance_;
-  std::vector<double> p_landmarks_;
+  std::vector<geometry_msgs::Point> p_landmarks_;
+  int p_landmarks_count_;
 
   std::string p_map_frame_id_;
   std::string p_base_frame_id_;

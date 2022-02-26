@@ -4,6 +4,8 @@
 
 namespace lidar_localization
 {
+namespace Util
+{
 
 template <class T, class S>
 double length(T& pose1, S& pose2)
@@ -22,14 +24,14 @@ double length(double x, double y)
   return sqrt(pow(x, 2.) + pow(y, 2.));
 }
 
-inline bool is_whthin_tolerance(double measure, double expect, double tolerance)
+double length(double x1, double y1, double x2, double y2)
 {
-  return abs(measure - expect) < tolerance;
+  return sqrt(pow(x1 - x2, 2.) + pow(y1 - y2, 2.));
 }
 
-inline double radian_to_degree(double r)
+bool approxEqual(double measure, double expect, double tolerance)
 {
-  return r / M_PI * 180;
+  return std::abs(measure - expect) < tolerance;
 }
-
+}  // namespace Util
 }  // namespace lidar_localization
