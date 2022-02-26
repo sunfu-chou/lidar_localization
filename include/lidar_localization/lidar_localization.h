@@ -28,6 +28,7 @@
 #include <armadillo>
 #include <cmath>
 #include <vector>
+#include <queue>
 #include <utility>
 
 #include <ros/ros.h>
@@ -97,13 +98,13 @@ private:
    * @brief Topic `lidar_pose` publisher function
    *
    */
-  void publishLocation();
+  void publishRobotPose();
 
   /**
    * @brief Tf broadcasters that send three fixed beacons pose to **map**
    *
    */
-  void publishBeacons();
+  void publishLandmarks();
 
   /**
    * @brief A blocking function to check if Tf is ok
@@ -149,7 +150,11 @@ private:
    * @brief To get robot pose by beacon
    *
    */
-  void getRobotPose();
+  void getRobotPose(std::vector<size_t>);
+
+  bool Match(std::vector<size_t> poly_list);
+
+  bool DFS(std::vector<size_t> poly_list);
 
   /* ros node */
   ros::NodeHandle nh_;
@@ -175,7 +180,10 @@ private:
 
   std::vector<std::vector<double>> beacon_dis_real_;
   std::vector<std::pair<size_t, size_t>> segments;
-  std::vector<double> is_possible_beacon;
+  std::vector<std::vector<size_t>> poly_lists;
+
+  geometry_msgs::PoseArray robot_pose_possible;
+  
   /* ros param */
   bool p_active_;
 

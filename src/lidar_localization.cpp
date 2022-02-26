@@ -24,7 +24,6 @@
 
 #include "lidar_localization/lidar_localization.h"
 
-using namespace std;
 using namespace lidar_localization;
 using namespace arma;
 
@@ -71,11 +70,11 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
   get_param_ok = nh_local_.param<double>("beacon_3_y", p_beacon_3_y_, 3.05);
   get_param_ok = nh_local_.param<double>("theta", p_theta_, 0);
 
-  get_param_ok = nh_local_.param<string>("obstacle_topic", p_obstacle_topic_, "obstacles");
-  get_param_ok = nh_local_.param<string>("beacon_parent_frame_id", p_beacon_parent_frame_id_, "map");
-  get_param_ok = nh_local_.param<string>("beacon_frame_id_prefix", p_beacon_frame_id_prefix_, "beacon");
-  get_param_ok = nh_local_.param<string>("robot_parent_frame_id", p_robot_parent_frame_id_, "map");
-  get_param_ok = nh_local_.param<string>("robot_frame_id", p_robot_frame_id_, "base_footprint");
+  get_param_ok = nh_local_.param<std::string>("obstacle_topic", p_obstacle_topic_, "obstacles");
+  get_param_ok = nh_local_.param<std::string>("beacon_parent_frame_id", p_beacon_parent_frame_id_, "map");
+  get_param_ok = nh_local_.param<std::string>("beacon_frame_id_prefix", p_beacon_frame_id_prefix_, "beacon");
+  get_param_ok = nh_local_.param<std::string>("robot_parent_frame_id", p_robot_parent_frame_id_, "map");
+  get_param_ok = nh_local_.param<std::string>("robot_frame_id", p_robot_frame_id_, "base_footprint");
 
   if (p_active_ != prev_active)
   {
@@ -110,7 +109,7 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
 
   for (int i = 0; i < 3; i++)
   {
-    vector<double> row = {};
+    std::vector<double> row = {};
     for (int j = 0; j < 3; j++)
     {
       row.push_back(length(beacon_to_map_[i], beacon_to_map_[j]));
@@ -129,11 +128,60 @@ void LidarLocalization::obstacleCallback(const obstacle_detector::Obstacles::Con
     input_circles_.push_back(obstacle);
   }
 
-  ROS_INFO_STREAM("n" << input_circles_.size());
-
   getBeacontoRobot();
   findBeacon();
-  getRobotPose();
+  robot_pose_possible.poses.clear();
+  for (int i = 0; i < poly_lists.size(); i++)
+  {
+    getRobotPose(poly_lists[i]);
+  }
+  geometry_msgs::TransformStamped transform;
+  geometry_msgs::Pose robot_pose_last;
+  try
+  {
+    transform = tf2_buffer_.lookupTransform("map", "base_footprint", ros::Time());
+    robot_pose_last.position.x = transform.transform.translation.x;
+    robot_pose_last.position.y = transform.transform.translation.y;
+    robot_pose_last.orientation = transform.transform.rotation;
+  }
+  catch (const tf2::TransformException& ex)
+  {
+    try
+    {
+      transform = tf2_buffer_.lookupTransform("map", "base_footprint", ros::Time());
+      robot_pose_last.position.x = transform.transform.translation.x;
+      robot_pose_last.position.y = transform.transform.translation.y;
+      robot_pose_last.orientation = transform.transform.rotation;
+    }
+    catch (const tf2::TransformException& ex)
+    {
+      ROS_WARN_STREAM(ex.what());
+    }
+  }
+  std::vector<double> costs;
+
+  tf2::Quaternion q;
+  tf2::fromMsg(robot_pose_last.orientation, q);
+  tf2::Matrix3x3 rl(q);
+  double _, yaw_rl;
+  rl.getRPY(_, _, yaw_rl);
+  for (int i = 0; i < robot_pose_possible.poses.size(); i++)
+  {
+    tf2::fromMsg(robot_pose_possible.poses[i].orientation, q);
+    tf2::Matrix3x3 rl(q);
+    double _, yaw;
+    rl.getRPY(_, _, yaw);
+    double d_yaw = abs(yaw - yaw_rl);
+    double d_xy = length(robot_pose_possible.poses[i].position, robot_pose_last.position);
+    double cost = 0.7 * d_xy + 0.3 * d_yaw;
+    costs.push_back(cost);
+  }
+  // std::cout << "nrobot: " << robot_pose_possible.poses.size() << std::endl;
+  int idx = std::min_element(costs.begin(), costs.end()) - costs.begin();
+  // std::cout << idx << std::endl;
+  output_robot_pose_.pose.pose = robot_pose_possible.poses[idx];
+  publishRobotPose();
+  publishLandmarks();
 }
 
 void LidarLocalization::setBeacontoMap()
@@ -283,79 +331,80 @@ void LidarLocalization::getBeacontoRobot()
   }
 }
 
-void LidarLocalization::findBeacon()
+bool LidarLocalization::Match(std::vector<size_t> poly_list)
 {
-  // for (int i = 0; i < 3; ++i)
-  // {
-  //   if (input_circles_.size())
-  //   {
-  //     double min_distance = length(input_circles_[0].center, beacon_to_robot_[i]);
-  //     for (auto circle : input_circles_)
-  //     {
-  //       if (length(circle.center, beacon_to_robot_[i]) <= min_distance)
-  //       {
-  //         min_distance = length(circle.center, beacon_to_robot_[i]);
-  //         beacon_found_[i].x = circle.center.x;
-  //         beacon_found_[i].y = circle.center.y;
-  //       }
-  //     }
-  //   }
-  // }
-  for (int i = 0; i < input_circles_.size() - 1; i++)
+  std::vector<std::vector<double>> beacon_dis;
+  for (int i = 0; i < 3; i++)
   {
-    for (int j = i + 1; j < input_circles_.size(); j++)
+    std::vector<double> row = {};
+    for (int j = 0; j < 3; j++)
     {
-      for(int k = 0; k < 3; k++){
-        if(is_whthin_tolerance(length(input_circles_[i].center, input_circles_[j].center), beacon_dis_real_[0][1], 0.15)){
-          
-        }
+      row.push_back(length(input_circles_[poly_list[i]].center, input_circles_[poly_list[j]].center));
+    }
+    beacon_dis.push_back(row);
+  }
+
+  for (int i = 0; i < 3 - 1; i++)
+  {
+    for (int j = i; j < 3; j++)
+    {
+      if (abs(beacon_dis_real_[i][j] - beacon_dis[i][j]) > 0.1)
+      {
+        return false;
       }
     }
   }
+
+  return true;
 }
 
-bool LidarLocalization::validateBeaconGeometry()
+bool LidarLocalization::DFS(std::vector<size_t> poly_list)
 {
-  double beacon_distance[3][3] = {};
-  double real_beacon_distance[3][3] = {};
-  for (int i = 0; i < 3; i++)
+  if (poly_list.size() == 3)
   {
-    for (int j = 0; j < 3; j++)
+    if (Match(poly_list))
     {
-      beacon_distance[i][j] = length(beacon_found_[i], beacon_found_[j]);
+      poly_lists.push_back(poly_list);
+      return true;
+    }
+    else
+    {
+      return false;
     }
   }
-
-  for (int i = 0; i < 3; i++)
+  for (int i = 0; i < input_circles_.size(); i++)
   {
-    for (int j = 0; j < 3; j++)
+    if (find(poly_list.begin(), poly_list.end(), i) == poly_list.end())
     {
-      real_beacon_distance[i][j] = length(beacon_to_map_[i], beacon_to_map_[j]);
+      poly_list.push_back(i);
+      DFS(poly_list);
+      poly_list.pop_back();
     }
   }
+  return false;
+}
 
-  if (is_whthin_tolerance(beacon_distance[0][1], real_beacon_distance[0][1], 0.15) && is_whthin_tolerance(beacon_distance[0][2], real_beacon_distance[0][2], 0.15) &&
-      is_whthin_tolerance(beacon_distance[1][2], real_beacon_distance[1][2], 0.15))
+void LidarLocalization::findBeacon()
+{
+  poly_lists.clear();
+  for (int i = 0; i < input_circles_.size(); i++)
   {
-    return true;
-  }
-  else
-  {
-    ROS_INFO_STREAM("reacon distance: " << real_beacon_distance[0][1] << ", " << real_beacon_distance[0][2] << ", " << real_beacon_distance[1][2]);
-    ROS_WARN_STREAM("beacon distance: " << beacon_distance[0][1] << ", " << beacon_distance[0][2] << ", " << beacon_distance[1][2]);
-    return false;
+    std::vector<size_t> poly_list;
+    poly_list.push_back(i);
+    DFS(poly_list);
   }
 }
 
-void LidarLocalization::getRobotPose()
+void LidarLocalization::getRobotPose(std::vector<size_t> poly_list)
 {
-  if (!validateBeaconGeometry())
+  for (int i = 0; i < 3; i++)
   {
-    ROS_WARN_STREAM("geometry error");
-    return;
+    beacon_found_[i].x = input_circles_[poly_list[i]].center.x;
+    beacon_found_[i].y = input_circles_[poly_list[i]].center.y;
+    beacon_found_[i].z = input_circles_[poly_list[i]].center.z;
   }
 
-  vector<double> dist_beacon_robot;
+  std::vector<double> dist_beacon_robot;
   for (int i = 0; i < 3; ++i)
   {
     dist_beacon_robot.push_back(length(beacon_found_[i]));
@@ -382,6 +431,15 @@ void LidarLocalization::getRobotPose()
     output_robot_pose_.pose.pose.position.x = X(0);
     output_robot_pose_.pose.pose.position.y = X(1);
 
+    if (!(X(0) > 0.0 && X(0) < 2.0))
+    {
+      return;
+    }
+    if (!(X(0) > 0.0 && X(0) < 3.0))
+    {
+      return;
+    }
+
     double robot_yaw = 0;
     double robot_sin = 0;
     double robot_cos = 0;
@@ -399,8 +457,6 @@ void LidarLocalization::getRobotPose()
     tf2::Quaternion q;
     q.setRPY(0., 0., robot_yaw);
     output_robot_pose_.pose.pose.orientation = tf2::toMsg(q);
-
-    publishLocation();
   }
   catch (const std::runtime_error& ex)
   {
@@ -408,10 +464,20 @@ void LidarLocalization::getRobotPose()
     ROS_WARN_STREAM(b);
     ROS_WARN_STREAM(ex.what());
   }
-  publishBeacons();
+
+  // std::cout << "pose: ";
+  // std::cout << output_robot_pose_.pose.pose.position.x << ", ";
+  // std::cout << output_robot_pose_.pose.pose.position.y << ", ";
+  // std::cout << output_robot_pose_.pose.pose.position.z << "\n";
+  geometry_msgs::Pose p;
+  p.position.x = output_robot_pose_.pose.pose.position.x;
+  p.position.y = output_robot_pose_.pose.pose.position.y;
+  p.position.z = output_robot_pose_.pose.pose.position.z;
+  p.orientation = output_robot_pose_.pose.pose.orientation;
+  robot_pose_possible.poses.push_back(p);
 }
 
-void LidarLocalization::publishLocation()
+void LidarLocalization::publishRobotPose()
 {
   ros::Time now = ros::Time::now();
 
@@ -430,7 +496,7 @@ void LidarLocalization::publishLocation()
   pub_location_.publish(output_robot_pose_);
 }
 
-void LidarLocalization::publishBeacons()
+void LidarLocalization::publishLandmarks()
 {
   ros::Time now = ros::Time::now();
   output_beacons_.header.stamp = now;
