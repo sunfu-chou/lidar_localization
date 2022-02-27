@@ -103,6 +103,7 @@ private:
   void publishLandmarks();
 
   void findLandmarks();
+  void calcRobotPose();
 
   /* ros node */
   ros::NodeHandle nh_;
@@ -123,6 +124,7 @@ private:
   /* private variables */
   std::vector<std::vector<double>> landmarks_length;
   std::vector<Polygon> polygons;
+  std::vector<double> obstacles_length;
 
   /* ros param */
   bool p_active_;

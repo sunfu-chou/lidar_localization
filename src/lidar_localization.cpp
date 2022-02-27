@@ -110,7 +110,7 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
     }
   }
 
-  // update landmarks_length
+  // update polygons
   landmarks_length.clear();
   for (int i = 0; i < p_landmarks_count_; i++)
   {
@@ -150,6 +150,7 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
 
 void LidarLocalization::obstacleCallback(const obstacle_detector::Obstacles::ConstPtr& ptr)
 {
+  ros::Time start = ros::Time::now();
   input_obstacles_.clear();
   for (const auto& obstacle : ptr->circles)
   {
@@ -157,6 +158,11 @@ void LidarLocalization::obstacleCallback(const obstacle_detector::Obstacles::Con
   }
 
   findLandmarks();
+  calcRobotPose();
+  publishRobotPose();
+  ros::Time stop = ros::Time::now();
+
+  ROS_INFO_STREAM("size: " << std::setw(6) << polygons.size() << ", Took " << std::setprecision(5) << stop - start);
 }
 
 void LidarLocalization::publishRobotPose()
@@ -183,9 +189,11 @@ void LidarLocalization::publishLandmarks()
   ros::Time now = ros::Time::now();
 }
 
+// TODO: add filter and test time
 void LidarLocalization::findLandmarks()
 {
   /* filter obstacle not possible out */
+
   // std::vector<int> possible_obstacles;
   // int l = input_obstacles_.size();
   // for (int i = 0; i < l; i++)
@@ -198,6 +206,19 @@ void LidarLocalization::findLandmarks()
   std::vector<int> possible_obstacles(input_obstacles_.size());
   std::iota(possible_obstacles.begin(), possible_obstacles.end(), 0);
 
+  // calc all distance for obstacles
+  obstacles_length.clear();
+  obstacles_length.resize(input_obstacles_.size());
+  for (const auto& idx : possible_obstacles)
+  {
+    obstacles_length[idx] = Util::length(input_obstacles_[idx]);
+  }
+
+  for (int i = 0; i < input_obstacles_.size();i++)
+  {
+    std::cout << i << ":" << obstacles_length[i] << std::endl;
+  }
+
   polygons.clear();
   do
   {
@@ -209,27 +230,23 @@ void LidarLocalization::findLandmarks()
     polygons.push_back(polygon);
     std::reverse(possible_obstacles.begin() + p_landmarks_count_, possible_obstacles.end());
   } while (std::next_permutation(possible_obstacles.begin(), possible_obstacles.end()));
+}
 
-  // polygons.clear();
-  // int l = input_obstacles_.size();
+void LidarLocalization::calcRobotPose(){
+  mat A(2, 2);
+  vec b(2);
+  vec X(2);
 
-  // for (int i = 0; i < l; i++)
-  // {
-  //   std::vector<int> vertices;
-  //   vertices.push_back(i);
-  //   std::queue<int> q;
-  //   q.push(i);
-  //   while (!q.empty())
-  //   {
-  //     int f = q.front();
-  //     if (vertices.size() == 3)
-  //     {
-  //       if (isSameShape())
-  //       {
-  //         Polygon polygon;
-  //         polygons.push_back(polygon);
-  //       }
-  //     }
-  //   }
-  // }
+  A(0, 0) = 2 * (p_landmarks_[0].x - p_landmarks_[2].x);
+  A(0, 1) = 2 * (p_landmarks_[0].y - p_landmarks_[2].y);
+
+  A(1, 0) = 2 * (p_landmarks_[1].x - p_landmarks_[2].x);
+  A(1, 1) = 2 * (p_landmarks_[1].y - p_landmarks_[2].y);
+
+  b(0) = (pow(p_landmarks_[0].x, 2) - pow(p_landmarks_[2].x, 2)) +
+         (pow(p_landmarks_[0].y, 2) - pow(p_landmarks_[2].y, 2)) +
+         (pow(obstacles_length[2], 2) - pow(obstacles_length[0], 2));
+  b(1) = (pow(p_landmarks_[1].x, 2) - pow(p_landmarks_[2].x, 2)) +
+         (pow(p_landmarks_[1].y, 2) - pow(p_landmarks_[2].y, 2)) +
+         (pow(obstacles_length[2], 2) - pow(obstacles_length[1], 2));
 }
