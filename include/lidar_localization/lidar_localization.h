@@ -102,8 +102,10 @@ private:
    */
   void publishLandmarks();
 
+  void getRobotPosefromTF();
   void findLandmarks();
-  void calcRobotPose();
+  void calcRobotPose(Polygon&);
+  void calcCosts(Polygon&);
 
   /* ros node */
   ros::NodeHandle nh_;
@@ -121,6 +123,7 @@ private:
   geometry_msgs::PoseWithCovarianceStamped output_robot_pose_;
   visualization_msgs::MarkerArray output_beacons_;
 
+  geometry_msgs::Pose robot_pose_now;
   /* private variables */
   std::vector<std::vector<double>> landmarks_length;
   std::vector<Polygon> polygons;

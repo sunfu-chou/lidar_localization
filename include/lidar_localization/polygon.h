@@ -38,6 +38,7 @@ namespace lidar_localization
   class Polygon{
     public:
       std::vector<int> vertices;
+      std::vector<std::vector<double>> edge_length;
       geometry_msgs::Pose robot_pose;
       double cost;
   };

@@ -151,6 +151,7 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
 void LidarLocalization::obstacleCallback(const obstacle_detector::Obstacles::ConstPtr& ptr)
 {
   ros::Time start = ros::Time::now();
+  getRobotPosefromTF();
   input_obstacles_.clear();
   for (const auto& obstacle : ptr->circles)
   {
@@ -158,11 +159,10 @@ void LidarLocalization::obstacleCallback(const obstacle_detector::Obstacles::Con
   }
 
   findLandmarks();
-  calcRobotPose();
   publishRobotPose();
   ros::Time stop = ros::Time::now();
 
-  ROS_INFO_STREAM("size: " << std::setw(6) << polygons.size() << ", Took " << std::setprecision(5) << stop - start);
+  // ROS_INFO_STREAM("size: " << std::setw(6) << polygons.size() << ", Took " << std::setprecision(5) << stop - start);
 }
 
 void LidarLocalization::publishRobotPose()
@@ -171,6 +171,8 @@ void LidarLocalization::publishRobotPose()
 
   output_robot_pose_.header.frame_id = p_map_frame_id_;
   output_robot_pose_.header.stamp = now;
+
+  output_robot_pose_.pose.pose = polygons[0].robot_pose;
 
   // clang-format off
                                       //x  y  z  pitch roll yaw
@@ -189,6 +191,32 @@ void LidarLocalization::publishLandmarks()
   ros::Time now = ros::Time::now();
 }
 
+void LidarLocalization::getRobotPosefromTF()
+{
+  geometry_msgs::TransformStamped transform;
+  try
+  {
+    transform = tf2_buffer_.lookupTransform(p_map_frame_id_, p_base_frame_id_, ros::Time());
+    robot_pose_now.position.x = transform.transform.translation.x;
+    robot_pose_now.position.y = transform.transform.translation.y;
+    robot_pose_now.orientation = transform.transform.rotation;
+  }
+  catch (const tf2::TransformException& ex)
+  {
+    try
+    {
+      transform = tf2_buffer_.lookupTransform(p_map_frame_id_, p_base_frame_id_, ros::Time());
+      robot_pose_now.position.x = transform.transform.translation.x;
+      robot_pose_now.position.y = transform.transform.translation.y;
+      robot_pose_now.orientation = transform.transform.rotation;
+    }
+    catch (const tf2::TransformException& ex)
+    {
+      ROS_WARN_STREAM(ex.what());
+    }
+  }
+}
+
 // TODO: add filter and test time
 void LidarLocalization::findLandmarks()
 {
@@ -202,7 +230,8 @@ void LidarLocalization::findLandmarks()
   //   {
   //     double edge_len = Util::length(input_obstacles_[i], input_obstacles_[j]);
   //   }
-  // }(
+  // }
+
   std::vector<int> possible_obstacles(input_obstacles_.size());
   std::iota(possible_obstacles.begin(), possible_obstacles.end(), 0);
 
@@ -214,11 +243,7 @@ void LidarLocalization::findLandmarks()
     obstacles_length[idx] = Util::length(input_obstacles_[idx]);
   }
 
-  for (int i = 0; i < input_obstacles_.size();i++)
-  {
-    std::cout << i << ":" << obstacles_length[i] << std::endl;
-  }
-
+  // iterate all possible polygon
   polygons.clear();
   do
   {
@@ -227,16 +252,59 @@ void LidarLocalization::findLandmarks()
     {
       polygon.vertices.push_back(possible_obstacles[i]);
     }
-    polygons.push_back(polygon);
+
+    bool is_edge_length_match = true;
+    for (int i = 0; i < p_landmarks_count_; i++)
+    {
+      std::vector<double> row;
+      for (int j = 0; j < i + 1; j++)
+      {
+        double edge_len = Util::length(input_obstacles_[polygon.vertices[i]], input_obstacles_[polygon.vertices[j]]);
+        // TODO: parameterize 0.1 as tolerance
+        if (abs(edge_len - landmarks_length[i][j]) > 0.1)
+        {
+          is_edge_length_match = false;
+        }
+
+        if (is_edge_length_match)
+        {
+          row.push_back(edge_len);
+        }
+        else
+        {
+          break;
+        }
+      }
+      if (is_edge_length_match)
+      {
+        polygon.edge_length.push_back(row);
+      }
+      else
+      {
+        break;
+      }
+    }
+    if (is_edge_length_match)
+    {
+      calcRobotPose(polygon);
+      if (polygon.robot_pose.position.x > 0 && polygon.robot_pose.position.x < 2.0)
+      {
+        if (polygon.robot_pose.position.y > 0 && polygon.robot_pose.position.y < 3.0)
+        {
+          polygons.push_back(polygon);
+        }
+      }
+    }
     std::reverse(possible_obstacles.begin() + p_landmarks_count_, possible_obstacles.end());
   } while (std::next_permutation(possible_obstacles.begin(), possible_obstacles.end()));
 }
 
-void LidarLocalization::calcRobotPose(){
+void LidarLocalization::calcRobotPose(Polygon& polygon)
+{
   mat A(2, 2);
   vec b(2);
   vec X(2);
-
+  // clang-format off
   A(0, 0) = 2 * (p_landmarks_[0].x - p_landmarks_[2].x);
   A(0, 1) = 2 * (p_landmarks_[0].y - p_landmarks_[2].y);
 
@@ -245,8 +313,47 @@ void LidarLocalization::calcRobotPose(){
 
   b(0) = (pow(p_landmarks_[0].x, 2) - pow(p_landmarks_[2].x, 2)) +
          (pow(p_landmarks_[0].y, 2) - pow(p_landmarks_[2].y, 2)) +
-         (pow(obstacles_length[2], 2) - pow(obstacles_length[0], 2));
+         (pow(obstacles_length[polygon.vertices[2]], 2) - pow(obstacles_length[polygon.vertices[0]], 2));
   b(1) = (pow(p_landmarks_[1].x, 2) - pow(p_landmarks_[2].x, 2)) +
          (pow(p_landmarks_[1].y, 2) - pow(p_landmarks_[2].y, 2)) +
-         (pow(obstacles_length[2], 2) - pow(obstacles_length[1], 2));
+         (pow(obstacles_length[polygon.vertices[2]], 2) - pow(obstacles_length[polygon.vertices[1]], 2));
+  // clang-format on
+  try
+  {
+    X = solve(A.t() * A, A.t() * b, solve_opts::no_approx);
+    polygon.robot_pose.position.x = X(0);
+    polygon.robot_pose.position.y = X(1);
+
+    double robot_yaw = 0;
+    double robot_sin = 0;
+    double robot_cos = 0;
+
+    for (int i = 0; i < 3; i++)
+    {
+      // clang-format off
+      double theta = atan2(p_landmarks_[i].y - polygon.robot_pose.position.y,
+                           p_landmarks_[i].x - polygon.robot_pose.position.x) -
+                     atan2(input_obstacles_[polygon.vertices[i]].y, input_obstacles_[polygon.vertices[i]].x);
+      // clang-format on
+      robot_sin += sin(theta);
+      robot_cos += cos(theta);
+      ROS_INFO_STREAM("i:" << i << " ," << theta);
+    }
+    robot_yaw = atan2(robot_sin, robot_cos);
+    ROS_INFO_STREAM("yaw: " << robot_yaw);
+    tf2::Quaternion q;
+    q.setRPY(0., 0., robot_yaw);
+    polygon.robot_pose.orientation = tf2::toMsg(q);
+  }
+  catch (const std::runtime_error& ex)
+  {
+    ROS_WARN_STREAM(A);
+    ROS_WARN_STREAM(b);
+    ROS_WARN_STREAM(ex.what());
+  }
+}
+
+void LidarLocalization::calcCosts(Polygon& polygon)
+{
+
 }
