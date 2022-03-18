@@ -54,20 +54,25 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
   get_param_ok = nh_local_.param<double>("x_max_range", p_x_max_range_, 2.0);
   get_param_ok = nh_local_.param<double>("y_min_range", p_y_min_range_, 0.0);
   get_param_ok = nh_local_.param<double>("y_max_range", p_y_max_range_, 3.0);
-  get_param_ok = nh_local_.param<double>("obstacle_height", p_height_, 2);
+  get_param_ok = nh_local_.param<double>("obstacle_height", p_marker_height_, 2);
+
+  get_param_ok = nh_local_.param<double>("avoid_distance", p_avoid_distance_, 0.5);
 
   if (p_active_ != prev_active)
   {
     if (p_active_)
     {
       sub_obstacles_ = nh_.subscribe("obstacles_to_map", 10, &AreaObstaclesExtractor::obstacleCallback, this);
+      sub_robot_pose_ = nh_.subscribe("robot_pose", 10, &AreaObstaclesExtractor::robotPoseCallback, this);
       pub_obstacles_array_ = nh_.advertise<costmap_converter::ObstacleArrayMsg>("obstacle_array", 10);
+      pub_have_obstacles_ = nh_.advertise<std_msgs::Bool>("have_obstacles", 10);
       pub_marker_ = nh_.advertise<visualization_msgs::MarkerArray>("obstacle_marker", 10);
     }
     else
     {
-      sub_obstacles_.shutdown();
+      sub_robot_pose_.shutdown();
       pub_obstacles_array_.shutdown();
+      pub_have_obstacles_.shutdown();
       pub_marker_.shutdown();
     }
   }
@@ -96,53 +101,80 @@ void AreaObstaclesExtractor::obstacleCallback(const obstacle_detector::Obstacles
   int id = 0;
   for (const obstacle_detector::CircleObstacle& circle : ptr->circles)
   {
-    if (circle.center.x > p_x_min_range_ && circle.center.x < p_x_max_range_)
-      if (circle.center.y > p_y_min_range_ && circle.center.y < p_y_max_range_)
-      {
-        costmap_converter::ObstacleMsg obstacle_msg;
-        obstacle_msg.header.frame_id = ptr->header.frame_id;
-        obstacle_msg.header.stamp = now;
+    if (checkBoundary(circle.center))
+    {
+      costmap_converter::ObstacleMsg obstacle_msg;
+      obstacle_msg.header.frame_id = ptr->header.frame_id;
+      obstacle_msg.header.stamp = now;
 
-        geometry_msgs::Point32 point;
-        point.x = circle.center.x;
-        point.y = circle.center.y;
-        obstacle_msg.polygon.points.push_back(point);
-        obstacle_msg.radius = circle.radius;
-        obstacle_msg.orientation.w = 1.0;
-        output_obstacles_array_.obstacles.push_back(obstacle_msg);
+      geometry_msgs::Point32 point;
+      point.x = circle.center.x;
+      point.y = circle.center.y;
+      obstacle_msg.polygon.points.push_back(point);
+      obstacle_msg.radius = circle.radius;
+      obstacle_msg.orientation.w = 1.0;
+      output_obstacles_array_.obstacles.push_back(obstacle_msg);
 
-        visualization_msgs::Marker marker;
-        marker.header.frame_id = ptr->header.frame_id;
-        marker.header.stamp = now;
-        marker.id = id++;
-        marker.type = visualization_msgs::Marker::CYLINDER;
-        marker.lifetime = ros::Duration(0.1);
-        marker.pose.position.x = circle.center.x;
-        marker.pose.position.y = circle.center.y;
-        marker.pose.position.z = p_height_ / 2.0;
-        marker.pose.orientation.w = 1.0;
-        marker.color.r = 0.5;
-        marker.color.g = 1.0;
-        marker.color.b = 0.5;
-        marker.color.a = 1.0;
+      visualization_msgs::Marker marker;
+      marker.header.frame_id = ptr->header.frame_id;
+      marker.header.stamp = now;
+      marker.id = id++;
+      marker.type = visualization_msgs::Marker::CYLINDER;
+      marker.lifetime = ros::Duration(0.1);
+      marker.pose.position.x = circle.center.x;
+      marker.pose.position.y = circle.center.y;
+      marker.pose.position.z = p_marker_height_ / 2.0;
+      marker.pose.orientation.w = 1.0;
+      marker.color.r = 0.5;
+      marker.color.g = 1.0;
+      marker.color.b = 0.5;
+      marker.color.a = 1.0;
 
-        marker.scale.x = circle.radius;
-        marker.scale.y = circle.radius;
-        marker.scale.z = p_height_;
+      marker.scale.x = circle.radius;
+      marker.scale.y = circle.radius;
+      marker.scale.z = p_marker_height_;
 
-        output_marker_array_.markers.push_back(marker);
-      }
+      output_marker_array_.markers.push_back(marker);
+    }
+    publishObstacles();
+    publishMarkers();
+    publishHaveObstacles();
   }
-  publishObstacles();
-  publishMarkers();
 }
-
 void AreaObstaclesExtractor::publishObstacles()
 {
   pub_obstacles_array_.publish(output_obstacles_array_);
 }
 
+void AreaObstaclesExtractor::publishHaveObstacles()
+{
+  output_have_obstacles_.data = false;
+  if (output_obstacles_array_.obstacles.size())
+  {
+    output_have_obstacles_.data = true;
+  }
+  pub_have_obstacles_.publish(output_have_obstacles_);
+}
+
 void AreaObstaclesExtractor::publishMarkers()
 {
   pub_marker_.publish(output_marker_array_);
+}
+
+bool AreaObstaclesExtractor::checkBoundary(geometry_msgs::Point p)
+{
+  bool ret = true;
+  if (p.x < p_x_min_range_ || p.x > p_x_max_range_)
+    ret = false;
+  if (p.y < p_y_min_range_ || p.y > p_y_max_range_)
+    ret = false;
+
+  if (length(input_robot_pose_.pose.pose.position, p) > p_avoid_distance_)
+    ret = false;
+  return ret;
+}
+
+void AreaObstaclesExtractor::robotPoseCallback(const nav_msgs::Odometry::ConstPtr& ptr)
+{
+  input_robot_pose_ = *ptr;
 }

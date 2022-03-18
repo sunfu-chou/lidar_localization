@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 2.8.3)
 project(lidar_localization)
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -fpermissive ${CMAKE_CXX_FLAGS} -Wfatal-errors\ ")
@@ -7,22 +7,24 @@ find_package(
   catkin
   REQUIRED
   COMPONENTS 
-  roscpp 
-  roslaunch 
+  roscpp
+  roslaunch
+  tf2
+  tf2_ros
+  nodelet
   rviz
   std_msgs
   geometry_msgs
   sensor_msgs
-  tf2
-  tf2_ros
   laser_geometry
-  nodelet
   obstacle_detector
 )
 
+find_package(Armadillo REQUIRED)
+
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_nodelets
+  LIBRARIES ${PROJECT_NAME} ${PROJECT_NAME}_nodelets beacon_scan_tracker area_obstacles_extractor
   CATKIN_DEPENDS roscpp rviz std_msgs geometry_msgs sensor_msgs tf2 tf2_ros laser_geometry nodelet obstacle_detector
 )
 
@@ -50,12 +52,6 @@ add_dependencies(beacon_scan_tracker ${catkin_EXPORTED_TARGETS})
 #
 # Build nodes
 #
-add_executable(rx_to_odom src/rx_to_odom.cpp)
-target_link_libraries(rx_to_odom ${PROJECT_NAME})
-
-add_executable(scan_rosbag src/scan_rosbag.cpp)
-target_link_libraries(scan_rosbag ${PROJECT_NAME})
-
 add_executable(lidar_localization_node src/nodes/lidar_localization_node.cpp)
 target_link_libraries(lidar_localization_node lidar_localization)
 

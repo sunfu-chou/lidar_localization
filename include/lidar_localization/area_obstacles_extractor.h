@@ -27,6 +27,8 @@
 #include <ros/ros.h>
 #include <vector>
 
+#include <lidar_localization/util/math_util.h>
+#include <std_msgs/Bool.h>
 #include <std_srvs/Empty.h>
 #include <obstacle_detector/Obstacles.h>
 #include <costmap_converter/ObstacleArrayMsg.h>
@@ -35,6 +37,7 @@
 #include <geometry_msgs/Point32.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <nav_msgs/Odometry.h>
 
 namespace lidar_localization
 {
@@ -88,11 +91,15 @@ private:
    */
   void publishObstacles();
 
+  void publishHaveObstacles();
   /**
    * @brief Topic `obstaclefield_marker` publisher function
    *
    */
   void publishMarkers();
+
+  bool checkBoundary(geometry_msgs::Point);
+  void robotPoseCallback(const nav_msgs::Odometry::ConstPtr& ptr);
 
   /* ros node */
   ros::NodeHandle nh_;
@@ -101,10 +108,14 @@ private:
 
   /* ros inter-node */
   ros::Subscriber sub_obstacles_;
+  ros::Subscriber sub_robot_pose_;
   ros::Publisher pub_obstacles_array_;
+  ros::Publisher pub_have_obstacles_;
   ros::Publisher pub_marker_;
 
+  nav_msgs::Odometry input_robot_pose_;
   costmap_converter::ObstacleArrayMsg output_obstacles_array_;
+  std_msgs::Bool output_have_obstacles_;
   visualization_msgs::MarkerArray output_marker_array_;
   /* private variables */
 
@@ -115,6 +126,7 @@ private:
   double p_x_max_range_;
   double p_y_min_range_;
   double p_y_max_range_;
-  double p_height_;
+  double p_marker_height_;
+  double p_avoid_distance_;
 };
 }  // namespace lidar_localization
