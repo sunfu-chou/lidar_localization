@@ -68,7 +68,6 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
     p_covariance_[7] = 0.1;
     p_covariance_[35] = 0.1;
   }
-
   // get list of list param "landmarks"
   p_landmarks_.clear();
   XmlRpc::XmlRpcValue landmarks;
@@ -96,7 +95,6 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
                       << "landmarks");
       ROS_WARN_STREAM("[Lidar Localization]: " << e.getMessage());
       p_landmarks_.clear();
-
       geometry_msgs::Point landmark;
       landmark.x = 1.00;
       landmark.y = -0.05;
@@ -109,6 +107,21 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
       p_landmarks_.push_back(landmark);
     }
   }
+  else
+  {
+    p_landmarks_.clear();
+    geometry_msgs::Point landmark;
+    landmark.x = 1.00;
+    landmark.y = -0.05;
+    p_landmarks_.push_back(landmark);
+    landmark.x = 1.953;
+    landmark.y = 3.1;
+    p_landmarks_.push_back(landmark);
+    landmark.x = 0.055;
+    landmark.y = 3.1;
+    p_landmarks_.push_back(landmark);
+  }
+  p_landmarks_count_ = p_landmarks_.size();
 
   // update polygons
   landmarks_length.clear();
@@ -159,6 +172,7 @@ void LidarLocalization::obstacleCallback(const obstacle_detector::Obstacles::Con
   }
 
   findLandmarks();
+
   publishRobotPose();
   ros::Time stop = ros::Time::now();
 
@@ -287,11 +301,19 @@ void LidarLocalization::findLandmarks()
     if (is_edge_length_match)
     {
       calcRobotPose(polygon);
+      arma::vec3 a, b;
+      a << input_obstacles_[polygon.vertices[1]].x - input_obstacles_[polygon.vertices[0]].x << input_obstacles_[polygon.vertices[1]].y - input_obstacles_[polygon.vertices[0]].y << 0;
+      b << input_obstacles_[polygon.vertices[2]].x - input_obstacles_[polygon.vertices[1]].x << input_obstacles_[polygon.vertices[2]].y - input_obstacles_[polygon.vertices[1]].y << 0;
+      vec c = arma::cross(a, b);
+      // TODO: parameterize range
       if (polygon.robot_pose.position.x > 0 && polygon.robot_pose.position.x < 2.0)
       {
         if (polygon.robot_pose.position.y > 0 && polygon.robot_pose.position.y < 3.0)
         {
-          polygons.push_back(polygon);
+          if (c(2) > 0)
+          {
+            polygons.push_back(polygon);
+          }
         }
       }
     }
@@ -355,5 +377,4 @@ void LidarLocalization::calcRobotPose(Polygon& polygon)
 
 void LidarLocalization::calcCosts(Polygon& polygon)
 {
-
 }
