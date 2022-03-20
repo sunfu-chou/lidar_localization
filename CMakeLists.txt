@@ -39,9 +39,9 @@ add_library(lidar_localization src/lidar_localization.cpp)
 target_link_libraries(lidar_localization ${catkin_LIBRARIES} ${ARMADILLO_LIBRARIES})
 add_dependencies(lidar_localization ${catkin_EXPORTED_TARGETS})
 
-# add_library(area_obstacles_extractor src/area_obstacles_extractor.cpp)
-# target_link_libraries(area_obstacles_extractor ${catkin_LIBRARIES})
-# add_dependencies(area_obstacles_extractor ${catkin_EXPORTED_TARGETS})
+add_library(area_obstacles_extractor src/area_obstacles_extractor.cpp)
+target_link_libraries(area_obstacles_extractor ${catkin_LIBRARIES})
+add_dependencies(area_obstacles_extractor ${catkin_EXPORTED_TARGETS})
 
 # add_library(beacon_scan_tracker src/beacon_scan_tracker.cpp)
 # target_link_libraries(beacon_scan_tracker ${catkin_LIBRARIES})
@@ -59,9 +59,8 @@ add_dependencies(lidar_localization ${catkin_EXPORTED_TARGETS})
 add_executable(lidar_localization_node src/nodes/lidar_localization_node.cpp)
 target_link_libraries(lidar_localization_node lidar_localization)
 
-# add_executable(area_obstacles_extractor_node src/nodes/area_obstacles_extractor_node.cpp)
-# target_link_libraries(area_obstacles_extractor_node area_obstacles_extractor)
-
+add_executable(area_obstacles_extractor_node src/nodes/area_obstacles_extractor_node.cpp)
+target_link_libraries(area_obstacles_extractor_node area_obstacles_extractor)
 
 # add_executable(beacon_scan_tracker_node src/nodes/beacon_scan_tracker_node.cpp)
 # target_link_libraries(beacon_scan_tracker_node beacon_scan_tracker)

@@ -163,6 +163,7 @@ bool LidarLocalization::updateParams(std_srvs::Empty::Request& req, std_srvs::Em
 
 void LidarLocalization::obstacleCallback(const obstacle_detector::Obstacles::ConstPtr& ptr)
 {
+  ROS_INFO_STREAM("cb start");
   ros::Time start = ros::Time::now();
   getRobotPosefromTF();
   input_obstacles_.clear();
@@ -170,10 +171,13 @@ void LidarLocalization::obstacleCallback(const obstacle_detector::Obstacles::Con
   {
     input_obstacles_.push_back(obstacle.center);
   }
+  ROS_INFO_STREAM("pushback finished");
 
   findLandmarks();
+  ROS_INFO_STREAM("findLandmarks finished");
 
   publishRobotPose();
+  ROS_INFO_STREAM("publishRobotPose finished");
   ros::Time stop = ros::Time::now();
 
   // ROS_INFO_STREAM("size: " << std::setw(6) << polygons.size() << ", Took " << std::setprecision(5) << stop - start);
@@ -185,19 +189,35 @@ void LidarLocalization::publishRobotPose()
 
   output_robot_pose_.header.frame_id = p_map_frame_id_;
   output_robot_pose_.header.stamp = now;
+  if (!polygons.size())
+  {
+    return;
+  }
+  double min_cost = polygons[0].cost;
+  int min_index = 0;
+  for (int i = 0; i < polygons.size(); i++)
+  {
+    if (polygons[i].cost < min_cost)
+    {
+      min_cost = polygons[i].cost;
+      min_index = i;
+    }
+  }
+  if (min_cost < 0.1)
+  {
+    output_robot_pose_.pose.pose = polygons[min_index].robot_pose;
 
-  output_robot_pose_.pose.pose = polygons[0].robot_pose;
-
-  // clang-format off
+    // clang-format off
                                       //x  y  z  pitch roll yaw
-  output_robot_pose_.pose.covariance = {0, 0, 0,    0,    0,  0,
-                                        0, 0, 0,    0,    0,  0,
-                                        0, 0, 0,    0,    0,  0,
-                                        0, 0, 0,    0,    0,  0,
-                                        0, 0, 0,    0,    0,  0,
-                                        0, 0, 0,    0,    0,  0};
-  // clang-format on
-  pub_robot_pose_.publish(output_robot_pose_);
+    output_robot_pose_.pose.covariance = {0.01, 0, 0,    0,    0,  0,
+                                          0, 0.01, 0,    0,    0,  0,
+                                          0, 0, 0,    0,    0,  0,
+                                          0, 0, 0,    0,    0,  0,
+                                          0, 0, 0,    0,    0,  0,
+                                          0, 0, 0,    0,    0,  0.01};
+    // clang-format on
+    pub_robot_pose_.publish(output_robot_pose_);
+  }
 }
 
 void LidarLocalization::publishLandmarks()
@@ -234,7 +254,7 @@ void LidarLocalization::getRobotPosefromTF()
 // TODO: add filter and test time
 void LidarLocalization::findLandmarks()
 {
-  /* filter obstacle not possible out */
+  // TODO: filter obstacle not possible out
 
   // std::vector<int> possible_obstacles;
   // int l = input_obstacles_.size();
@@ -245,7 +265,8 @@ void LidarLocalization::findLandmarks()
   //     double edge_len = Util::length(input_obstacles_[i], input_obstacles_[j]);
   //   }
   // }
-
+  if (!input_obstacles_.size())
+    return;
   std::vector<int> possible_obstacles(input_obstacles_.size());
   std::iota(possible_obstacles.begin(), possible_obstacles.end(), 0);
 
@@ -278,17 +299,10 @@ void LidarLocalization::findLandmarks()
         if (abs(edge_len - landmarks_length[i][j]) > 0.1)
         {
           is_edge_length_match = false;
-        }
-
-        if (is_edge_length_match)
-        {
-          row.push_back(edge_len);
-        }
-        else
-        {
           break;
         }
       }
+
       if (is_edge_length_match)
       {
         polygon.edge_length.push_back(row);
@@ -298,6 +312,7 @@ void LidarLocalization::findLandmarks()
         break;
       }
     }
+
     if (is_edge_length_match)
     {
       calcRobotPose(polygon);
@@ -359,10 +374,10 @@ void LidarLocalization::calcRobotPose(Polygon& polygon)
       // clang-format on
       robot_sin += sin(theta);
       robot_cos += cos(theta);
-      ROS_INFO_STREAM("i:" << i << " ," << theta);
+      // ROS_INFO_STREAM("i:" << i << " ," << theta);
     }
     robot_yaw = atan2(robot_sin, robot_cos);
-    ROS_INFO_STREAM("yaw: " << robot_yaw);
+    // ROS_INFO_STREAM("yaw: " << robot_yaw);
     tf2::Quaternion q;
     q.setRPY(0., 0., robot_yaw);
     polygon.robot_pose.orientation = tf2::toMsg(q);
@@ -377,4 +392,16 @@ void LidarLocalization::calcRobotPose(Polygon& polygon)
 
 void LidarLocalization::calcCosts(Polygon& polygon)
 {
+  tf2::Quaternion q;
+  tf2::fromMsg(robot_pose_now.orientation, q);
+  tf2::Matrix3x3 mat_robot(q);
+  double _, robot_yaw, robot_calc_yaw;
+  mat_robot.getRPY(_, _, robot_yaw);
+
+  tf2::fromMsg(polygon.robot_pose.orientation, q);
+  tf2::Matrix3x3 mat_calc_robot(q);
+  mat_calc_robot.getRPY(_, _, robot_calc_yaw);
+
+  polygon.cost =
+      0.7 * (pow(robot_pose_now.position.x - polygon.robot_pose.position.x, 2) + pow(robot_pose_now.position.y - polygon.robot_pose.position.y, 2)) + 0.3 * (pow(robot_calc_yaw - robot_calc_yaw, 2));
 }
