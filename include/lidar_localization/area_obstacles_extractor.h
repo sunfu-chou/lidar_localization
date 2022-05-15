@@ -126,13 +126,13 @@ private:
   double p_x_max_range_;
   double p_y_min_range_;
   double p_y_max_range_;
-  double p_excluded_x_;
-  double p_excluded_y_;
-  double p_excluded_radius_;
+  std::vector<double> p_excluded_x_;
+  std::vector<double> p_excluded_y_;
+  std::vector<double> p_excluded_radius_;
   double p_marker_height_;
   double p_avoid_distance_;
 
-  geometry_msgs::Point exclude_pose_;
+  std::vector<geometry_msgs::Point> exclude_poses_;
 
 };
 }  // namespace lidar_localization

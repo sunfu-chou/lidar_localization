@@ -55,13 +55,39 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
   get_param_ok = nh_local_.param<double>("y_min_range", p_y_min_range_, 0.0);
   get_param_ok = nh_local_.param<double>("y_max_range", p_y_max_range_, 3.0);
 
-  get_param_ok = nh_local_.param<double>("excluded_x", p_excluded_x_, 0.0);
-  get_param_ok = nh_local_.param<double>("excluded_y", p_excluded_y_, 0.0);
+  p_excluded_x_.clear();
+  if (!nh_local_.getParam("excluded_x", p_excluded_x_))
+  {
+    ROS_WARN_STREAM("[Area]: "
+                    << "set param failed: "
+                    << "excluded_x");
+  }
+  if (!nh_local_.getParam("excluded_y", p_excluded_y_))
+  {
+    ROS_WARN_STREAM("[Area]: "
+                    << "set param failed: "
+                    << "excluded_y");
+  }
+  if (!nh_local_.getParam("excluded_radius", p_excluded_radius_))
+  {
+    ROS_WARN_STREAM("[Area]: "
+                    << "set param failed: "
+                    << "excluded_radius");
+  }
 
-  exclude_pose_.x = p_excluded_x_;
-  exclude_pose_.y = p_excluded_y_;
+  exclude_poses_.clear();
+  for (int i = 0; i < p_excluded_x_.size(); ++i){
+    geometry_msgs::Point p;
+    p.x = p_excluded_x_.at(i);
+    p.y = p_excluded_y_.at(i);
+    exclude_poses_.push_back(p);
+  }
 
-  get_param_ok = nh_local_.param<double>("excluded_radius", p_excluded_radius_, 0.0);
+  for(int i = 0; i < p_excluded_x_.size(); ++i){
+    std::cout << "x: " << p_excluded_x_.at(i) << ", ";
+    std::cout << "y: " << p_excluded_y_.at(i) << ", ";
+    std::cout << "r: " << p_excluded_radius_.at(i) << "\n";
+  }
 
   get_param_ok = nh_local_.param<double>("obstacle_height", p_marker_height_, 2);
   get_param_ok = nh_local_.param<double>("avoid_distance", p_avoid_distance_, 0.5);
@@ -177,8 +203,15 @@ bool AreaObstaclesExtractor::checkBoundary(geometry_msgs::Point p)
   if (p.y < p_y_min_range_ || p.y > p_y_max_range_)
     ret = false;
 
-  if(length(exclude_pose_, p) < p_excluded_radius_)
-    ret = false;
+  int idx = 0;
+  for(const auto exclude_pose_: exclude_poses_){
+    if(length(exclude_pose_, p) < p_excluded_radius_.at(idx)){
+      ret = false;
+      break;
+    }
+    ++idx;
+  }
+
 
   if (length(input_robot_pose_.pose.pose.position, p) > p_avoid_distance_)
     ret = false;
