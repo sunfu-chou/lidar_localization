@@ -130,7 +130,8 @@ private:
   std::vector<double> p_excluded_y_;
   std::vector<double> p_excluded_radius_;
   double p_marker_height_;
-  double p_avoid_distance_;
+  double p_avoid_min_distance_;
+  double p_avoid_max_distance_;
 
   std::vector<geometry_msgs::Point> exclude_poses_;
 

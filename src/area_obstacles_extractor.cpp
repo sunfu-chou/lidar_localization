@@ -76,21 +76,24 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
   }
 
   exclude_poses_.clear();
-  for (int i = 0; i < p_excluded_x_.size(); ++i){
+  for (int i = 0; i < p_excluded_x_.size(); ++i)
+  {
     geometry_msgs::Point p;
     p.x = p_excluded_x_.at(i);
     p.y = p_excluded_y_.at(i);
     exclude_poses_.push_back(p);
   }
 
-  for(int i = 0; i < p_excluded_x_.size(); ++i){
+  for (int i = 0; i < p_excluded_x_.size(); ++i)
+  {
     std::cout << "x: " << p_excluded_x_.at(i) << ", ";
     std::cout << "y: " << p_excluded_y_.at(i) << ", ";
     std::cout << "r: " << p_excluded_radius_.at(i) << "\n";
   }
 
   get_param_ok = nh_local_.param<double>("obstacle_height", p_marker_height_, 2);
-  get_param_ok = nh_local_.param<double>("avoid_distance", p_avoid_distance_, 0.5);
+  get_param_ok = nh_local_.param<double>("avoid_min_distance", p_avoid_min_distance_, 0.1);
+  get_param_ok = nh_local_.param<double>("avoid_max_distance", p_avoid_max_distance_, 0.5);
 
   if (p_active_ != prev_active)
   {
@@ -204,17 +207,21 @@ bool AreaObstaclesExtractor::checkBoundary(geometry_msgs::Point p)
     ret = false;
 
   int idx = 0;
-  for(const auto exclude_pose_: exclude_poses_){
-    if(length(exclude_pose_, p) < p_excluded_radius_.at(idx)){
+  for (const auto exclude_pose_ : exclude_poses_)
+  {
+    if (length(exclude_pose_, p) < p_excluded_radius_.at(idx))
+    {
       ret = false;
       break;
     }
     ++idx;
   }
 
-
-  if (length(input_robot_pose_.pose.pose.position, p) > p_avoid_distance_)
+  if (length(input_robot_pose_.pose.pose.position, p) > p_avoid_max_distance_)
     ret = false;
+  if (length(input_robot_pose_.pose.pose.position, p) < p_avoid_min_distance_)
+    ret = false;
+    
   return ret;
 }
 
