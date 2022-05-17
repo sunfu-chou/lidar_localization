@@ -35,6 +35,7 @@
 #include <costmap_converter/ObstacleMsg.h>
 #include <geometry_msgs/Polygon.h>
 #include <geometry_msgs/Point32.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <nav_msgs/Odometry.h>
@@ -100,6 +101,7 @@ private:
 
   bool checkBoundary(geometry_msgs::Point);
   void robotPoseCallback(const nav_msgs::Odometry::ConstPtr& ptr);
+  void allyRobotPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& ptr);
 
   /* ros node */
   ros::NodeHandle nh_;
@@ -109,11 +111,13 @@ private:
   /* ros inter-node */
   ros::Subscriber sub_obstacles_;
   ros::Subscriber sub_robot_pose_;
+  ros::Subscriber sub_ally_robot_pose_;
   ros::Publisher pub_obstacles_array_;
   ros::Publisher pub_have_obstacles_;
   ros::Publisher pub_marker_;
 
   nav_msgs::Odometry input_robot_pose_;
+  geometry_msgs::PoseWithCovarianceStamped input_ally_robot_pose_;
   costmap_converter::ObstacleArrayMsg output_obstacles_array_;
   std_msgs::Bool output_have_obstacles_;
   visualization_msgs::MarkerArray output_marker_array_;
@@ -132,6 +136,8 @@ private:
   double p_marker_height_;
   double p_avoid_min_distance_;
   double p_avoid_max_distance_;
+
+  double p_ally_excluded_radius_;
 
   std::vector<geometry_msgs::Point> exclude_poses_;
 

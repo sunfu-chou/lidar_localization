@@ -94,6 +94,7 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
   get_param_ok = nh_local_.param<double>("obstacle_height", p_marker_height_, 2);
   get_param_ok = nh_local_.param<double>("avoid_min_distance", p_avoid_min_distance_, 0.1);
   get_param_ok = nh_local_.param<double>("avoid_max_distance", p_avoid_max_distance_, 0.5);
+  get_param_ok = nh_local_.param<double>("ally_excluded_radius", p_ally_excluded_radius_, p_avoid_min_distance_);
 
   if (p_active_ != prev_active)
   {
@@ -101,6 +102,7 @@ bool AreaObstaclesExtractor::updateParams(std_srvs::Empty::Request& req, std_srv
     {
       sub_obstacles_ = nh_.subscribe("obstacles_to_map", 10, &AreaObstaclesExtractor::obstacleCallback, this);
       sub_robot_pose_ = nh_.subscribe("robot_pose", 10, &AreaObstaclesExtractor::robotPoseCallback, this);
+      sub_ally_robot_pose_ = nh_.subscribe("ally_pose", 10, &AreaObstaclesExtractor::robotPoseCallback, this);
       pub_obstacles_array_ = nh_.advertise<costmap_converter::ObstacleArrayMsg>("obstacle_array", 10);
       pub_have_obstacles_ = nh_.advertise<std_msgs::Bool>("have_obstacles", 10);
       pub_marker_ = nh_.advertise<visualization_msgs::MarkerArray>("obstacle_marker", 10);
@@ -201,11 +203,14 @@ void AreaObstaclesExtractor::publishMarkers()
 bool AreaObstaclesExtractor::checkBoundary(geometry_msgs::Point p)
 {
   bool ret = true;
+
+  // playing area boundary
   if (p.x < p_x_min_range_ || p.x > p_x_max_range_)
     ret = false;
   if (p.y < p_y_min_range_ || p.y > p_y_max_range_)
     ret = false;
 
+  // exclude some excluded circles
   int idx = 0;
   for (const auto exclude_pose_ : exclude_poses_)
   {
@@ -217,15 +222,24 @@ bool AreaObstaclesExtractor::checkBoundary(geometry_msgs::Point p)
     ++idx;
   }
 
+  // exclude too close or too far obstacles
   if (length(input_robot_pose_.pose.pose.position, p) > p_avoid_max_distance_)
     ret = false;
   if (length(input_robot_pose_.pose.pose.position, p) < p_avoid_min_distance_)
     ret = false;
-    
+
+  // exclude ally obstacles
+  if (length(input_ally_robot_pose_.pose.pose.position, p) < p_ally_excluded_radius_)
+    ret = false;
+
   return ret;
 }
 
 void AreaObstaclesExtractor::robotPoseCallback(const nav_msgs::Odometry::ConstPtr& ptr)
 {
   input_robot_pose_ = *ptr;
+}
+
+void AreaObstaclesExtractor::allyRobotPoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& ptr){
+  input_ally_robot_pose_ = *ptr;
 }
